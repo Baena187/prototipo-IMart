@@ -1,76 +1,53 @@
-# iMart Control — protótipo navegável
+# Agenda Promo — Agendamento de Degustações em Clientes
 
-**iMart** · Gestão inteligente para o ponto de venda.
+Protótipo funcional (front-end) de uma plataforma interna para solicitar, atribuir e executar
+degustações em clientes. Todos os dados são fictícios e ficam no navegador (`localStorage`); não há backend.
 
-Protótipo front-end da plataforma de gestão de gôndolas inteligentes: réguas digitais de LED
-contínuas, preços dinâmicos, campanhas, câmeras com visão computacional, monitoramento de
-dispositivos e operação do serviço iMart para múltiplas lojas.
-
-> Todos os dados são fictícios e ficam no navegador (localStorage). Não há backend.
+**Fluxo:** Vendedor solicita → Gestora de promotores define o promotor → Promotor executa e finaliza.
 
 ## Como executar
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:5173
+npm run build      # checagem TypeScript + build de produção
 ```
 
-Acesse `http://localhost:5173`. O login já vem preenchido (qualquer e-mail/senha com 4+ caracteres
-funciona). Outros scripts:
+O login já vem preenchido (a tela tem atalhos por perfil). No topo, **Visualizar como** alterna entre
+Vendedor, Gestora, Promotor e Administrador. **Configurações → Restaurar** volta aos dados iniciais.
 
-| Comando | Descrição |
-| --- | --- |
-| `npm run build` | Checagem TypeScript (`tsc -b`) + build de produção |
-| `npm run preview` | Serve o build de produção |
-| `npm run typecheck` | Somente checagem de tipos |
+> “Hoje” no protótipo é fixo em **08/10/2026** (configurável em Configurações) para manter os dados
+> coerentes. Antecedência mínima padrão: 3 dias → primeira data reservável: 11/10.
 
-Para voltar ao estado inicial da demonstração: **Configurações → Restaurar dados**.
+## Roteiro da demonstração (fluxo completo)
 
-## Roteiro sugerido de demonstração
+1. Entrar como **Vendedor** (João Silva) → **Agendar degustação**.
+2. Buscar “miguel” (ou código, CNPJ, cidade, bairro) e **Selecionar** o cliente — dados bloqueados.
+3. **Data**: calendário verde/amarelo/vermelho/cinza; use “Próxima data disponível”, escolha horário/duração.
+   (Dia 16/10 é vermelho; 15/10 tem poucas vagas; tente um horário que conflite para ver as validações.)
+4. **Ação**: tipo, marca, produtos, materiais, observações → **Confirmação** → **Confirmar solicitação**.
+5. Trocar para **Gestora** → Agendamentos → **Definir promotor** → *Selecionar* (Carlos Lima) → **Confirmar promotor**.
+6. Trocar para **Promotor** (Carlos Lima) → ver a ação em “Próximos dias” → **Iniciar ação** → **Finalizar ação**.
+7. Voltar a **Vendedor** → Agendamentos → status **FINALIZADA** (com pessoas atendidas).
 
-1. **Visão geral** → clique em *Status da operação* › Loja Goiânia Centro.
-2. **Loja** → *Ver gôndolas* › **Gôndola G-07** (representação visual das prateleiras).
-3. Clique na prateleira **G07-P03** → **editor da régua**:
-   selecione um produto, use *Mover para direita/esquerda* ou arraste o bloco, clique *Alinhar*,
-   informe um *Novo preço*, *Pré-visualizar* e **Publicar** (Publicando… → Publicado com sucesso).
-4. **Auditoria** → o evento da publicação e da alteração de preço aparece no topo.
-5. **Preços** → aba *Aguardando aprovação* → selecionar → *Aprovar* → *Publicar*.
-6. **Campanhas** → *Nova campanha* com preview da régua em tempo real.
-7. Menu do usuário (canto superior direito) → *Perfil de demonstração* para ver o RBAC
-   (ex.: *Visualização* deixa o editor somente leitura).
+Também disponíveis: sino de notificações por perfil (com “simular notificação”), solicitação/confirmação
+de cancelamento, calendário com contagem por dia, agenda dos promotores, histórico com filtros,
+importação simulada de clientes (CSV/XLSX), administração (usuários, clientes, promotores, vendedores,
+produtos, marcas e tipos de ação) e regras configuráveis (antecedência mínima, capacidade por promotor).
 
-Atalhos: `Ctrl/⌘ + K` pesquisa global · setas ←/→ movem o bloco selecionado no editor ·
-`Ctrl/⌘ + Z` desfaz.
+## Stack e estrutura
 
-## Stack
-
-React 18 · TypeScript · Vite · Tailwind CSS · componentes próprios no padrão shadcn/ui ·
-Lucide Icons · Recharts · React Router.
-
-## Arquitetura
+React 18 · TypeScript · Vite · Tailwind CSS · Lucide Icons.
 
 ```
 src/
-  components/
-    ui/          primitivas (Button, Badge, Dialog, Sheet, Tabs, Switch…)
-    shared/      DataTable, FilterBar, StatusBadge, PageHeader, StatCard, Timeline…
-    shelf/       ShelfStrip (renderização da régua LED), SlotInspector, diálogos de publicação
-    layout/      Sidebar, Topbar, CommandPalette, navegação
-  contexts/      Auth (sessão + RBAC), Toast, loja selecionada
-  data/          mocks determinísticos (lojas, produtos, rede de dispositivos, alertas…)
-  hooks/         useQuery (revalidação automática), usePriceBook, usePagination…
-  layouts/       AppLayout
-  pages/         uma pasta por módulo
-  services/      camada de serviços assíncrona (substituível por API REST)
-  types/         enums e interfaces de domínio
-  utils/         formatação pt-BR, labels de status, regras da régua, permissões
+  data/        catálogo (clientes, vendedores, promotores, marcas, produtos) e seed de degustações
+  lib/         datas (pt-BR), regras de disponibilidade/conflito, status
+  store.tsx    estado global + ações (persistência em localStorage)
+  components/  UI, layout, detalhe da degustação, diálogos, tabela, calendário
+  pages/       Login, Dashboard (3 visões), Agendamentos, Novo agendamento, Calendário,
+               Clientes, Promotores, Histórico, Administração, Configurações
 ```
 
-- **Serviços** (`src/services/*.service.ts`) expõem funções assíncronas com latência simulada.
-  Para integrar uma API real, basta reimplementar essas funções mantendo as assinaturas.
-- **Persistência** (`services/db.ts`): cada coleção nasce de um seed determinístico e grava no
-  localStorage apenas as alterações feitas na demonstração.
-- **RBAC**: perfis e permissões em `data/users.ts`; `useAuth().can(permission)` controla menus e ações.
-
-Fora do escopo desta etapa (arquitetura preparada): visão computacional real, protocolo das
-réguas LED, websocket de hardware, integração ERP, cobrança, autenticação real e infraestrutura cloud.
+Para integrar a um backend, as ações de `store.tsx` são o ponto único de mutação; a base de clientes
+(CODCLI) poderá vir de planilha, ERP WinThor ou API.
